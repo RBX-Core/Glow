@@ -75,22 +75,19 @@ end
     @param tbl Table to format
     @return Formatted table string
 ]]
-function Glow.FormatTable(tbl: { [any]: any }): string
+function Glow.FormatTable(tbl: { [any]: any }, indent: number?): string
 	local result: { string } = {}
-
+	local indent = indent or 0
+	
 	for key, value in tbl do
 		local stringifiedKey = typeof(key) == "string" 
 			and `"{tostring(key)}"` 
 			or tostring(key)
 
-		local stringifiedValue = typeof(value) == "string"
-			and `"{tostring(value)}"` 
-			or tostring(value)
-
-		table.insert(result, `\t[{stringifiedKey}] = {stringifiedValue}`)
+		table.insert(result, `\t{("	"):rep(indent)}[{stringifiedKey}] = {Glow.FormatValue(value, indent + 1)}`)
 	end
 
-	return "{\n" .. table.concat(result, "\n") .. "\n}"
+	return "{\n" .. table.concat(result, ",\n") .. `\n{("	"):rep(indent)}}`
 end
 
 --[[
@@ -98,17 +95,19 @@ end
     @param value Value to format
     @return Formatted string representation of the value
 ]]
-function Glow.FormatValue(value: any): string
+function Glow.FormatValue(value: any, ...): string
 	local valueType = type(value)
 
 	if valueType == "string" then
 		return `"{value}"`
 	elseif valueType == "number" then
 		return tostring(value)
+	elseif valueType == "boolean" then
+		return tostring(value)
 	elseif valueType == "table" then
-		return Glow.FormatTable(value)
+		return Glow.FormatTable(value, ...)
 	elseif typeof(value) == "Instance" then
-		return tostring(value:GetFullName())
+		return `game.{value:GetFullName()}`
 	end
 
 	return typeof(value)
