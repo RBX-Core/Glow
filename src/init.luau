@@ -32,6 +32,7 @@ function Glow.FormatDecoration(text: string): string
 	local textLength = #text
 	local leftDashes = math.floor((25 - textLength - 2) / 2)
 	local rightDashes = 25 - textLength - leftDashes - 2
+	
 	return `• {string.rep("—", leftDashes)} {text} {string.rep("—", rightDashes)} •`
 end
 
@@ -142,9 +143,11 @@ end
 ]]
 function Glow.Print(...: any)
 	local messageParts: { string } = {}
+	
 	for _, message in { ... } do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
+	
 	print(Glow.FormatMessage("PRINT", messageParts))
 end
 
@@ -154,9 +157,11 @@ end
 ]]
 function Glow.Warn(...: any)
 	local messageParts: { string } = {}
+	
 	for _, message in { ... } do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
+	
 	TestService:Warn(false, Glow.FormatMessage("WARNING", messageParts))
 end
 
@@ -166,9 +171,11 @@ end
 ]]
 function Glow.Error(...: any)
 	local messageParts: { string } = {}
+	
 	for _, message in { ... } do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
+	
 	TestService:Error(Glow.FormatMessage("ERROR", messageParts))
 	return coroutine.yield()
 end
@@ -179,13 +186,14 @@ end
     @param message Optional custom error message
 ]]
 function Glow.Assert(condition: boolean, message: string?)
-	if not condition then
-		TestService:Error(Glow.FormatMessage(
-			"ASSERTION", { message or "Assertion Failed!" }
-			))
+	if condition then
+		return
 	end
-
-	return coroutine.yield()
+	
+	return TestService:Error(Glow.FormatMessage(
+		"ASSERTION", { message or "Assertion Failed!" }
+		)
+	)
 end
 
 --[[
