@@ -1,4 +1,4 @@
-# 🌟 Glow Logging Module
+# 🦺 Glow Logging Module
 
 ## Overview
 
