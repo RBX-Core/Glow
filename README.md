@@ -2,7 +2,7 @@
 
 ## Overview
 
-Glow is a powerful, feature-rich logging and debugging utility for Roblox Lua/Luau projects. Designed to provide enhanced visibility into your code's execution, Glow offers comprehensive logging, error tracking, and diagnostics with beautifully formatted output.
+Glow is a powerful, feature-rich logging and debugging utility for Roblox Luau projects. Glow offers comprehensive logging, error tracking, and diagnostics with beautifully formatted output.
 
 ## Features
 
