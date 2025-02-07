@@ -1,46 +1,64 @@
---!strict
-
---[[
-    Glow (Logging Module)
-    Provides enhanced logging and debugging utilities for Roblox
-    
-    Features:
-    - Formatted print, warn, and error messages
-    - Detailed stack trace tracking
-    - Assertion and checkpoint functionality
-    
-    Rojo Compatibility:
-    - Can be placed in src/ directory
-    - Exports Glow module for use across project
-]]
+--[=[
+    @class Glow
+    A utility module for formatted debugging output and assertions.
+    Provides methods for pretty-printing, warnings, errors, and checkpoints.
+]=]
 
 local TestService = game:GetService("TestService")
 
--- Constants
+local VALID_CHARACTERS = "abcdefghijklmnopqrstuvwxyz1234567890_"
 local DECORATION = `• {string.rep("—", 25)} •`
 
--- Glow Module Definition
+--[=[
+    @param instance Instance -- The instance to parse
+    @return string -- String representation of instance path
+]=]
+local function parseInstance(instance: Instance): string
+	if instance == game then
+		return "game"
+	end
+
+	local path = instance
+	local result = ""
+
+	repeat 
+		local name = path.Name
+		local loweredName = name:lower()
+		local fullName = `.{name}`
+
+		for i=1, #name do
+			if not VALID_CHARACTERS:match(loweredName:sub(i, i)) then
+				fullName = `["{name}"]`
+				break
+			end
+		end
+
+		result = `{fullName}{result}`
+		path = path.Parent
+	until path == game
+
+	return `game{result}`
+end
+
 local Glow = {}
 export type Glow = typeof(Glow)
 
---[[
-    Formats a decoration line with centered text
-    @param text The text to center in the decoration
-    @return Formatted decoration string
-]]
+--[=[
+    @param text string -- Text to decorate
+    @return string -- Decorated text with centered dashes
+]=]
 function Glow.FormatDecoration(text: string): string
 	local textLength = #text
 	local leftDashes = math.floor((25 - textLength - 2) / 2)
 	local rightDashes = 25 - textLength - leftDashes - 2
-	
+
 	return `• {string.rep("—", leftDashes)} {text} {string.rep("—", rightDashes)} •`
 end
 
---[[
-    Parses and formats debug trace lines
-    @param lines Raw stack trace lines
-    @return Formatted stack trace
-]]
+--[=[
+    @param lines string -- Debug trace lines to format
+    @return string -- Formatted debug trace
+]=]
 function Glow.FormatDebugTrace(lines: string): string
 	local result: string = ""
 
@@ -64,21 +82,21 @@ function Glow.FormatDebugTrace(lines: string): string
 			end
 		end
 
-		result ..= `→ {modulePath} (line {lineNum}){formattedFunc}`
+		result ..= `→ game.{modulePath} (line {lineNum}){formattedFunc}`
 	end
 
 	return result:sub(2)
 end
 
---[[
-    Converts a table to a formatted string representation
-    @param tbl Table to format
-    @return Formatted table string
-]]
+--[=[
+    @param tbl {[any]: any} -- Table to format
+    @param indent number? -- Indentation level
+    @return string -- Formatted table representation
+]=]
 function Glow.FormatTable(tbl: { [any]: any }, indent: number?): string
 	local result: { string } = {}
 	local indent = indent or 0
-	
+
 	for key, value in tbl do
 		local stringifiedKey = typeof(key) == "string" 
 			and `"{tostring(key)}"` 
@@ -90,11 +108,11 @@ function Glow.FormatTable(tbl: { [any]: any }, indent: number?): string
 	return "{\n" .. table.concat(result, ",\n") .. `\n{("	"):rep(indent)}}`
 end
 
---[[
-    Formats different value types for logging
-    @param value Value to format
-    @return Formatted string representation of the value
-]]
+--[=[
+    @param value any -- Value to format
+    @param ... any -- Additional parameters for nested formatting
+    @return string -- Formatted value representation
+]=]
 function Glow.FormatValue(value: any, ...): string
 	local valueType = type(value)
 
@@ -107,18 +125,17 @@ function Glow.FormatValue(value: any, ...): string
 	elseif valueType == "table" then
 		return Glow.FormatTable(value, ...)
 	elseif typeof(value) == "Instance" then
-		return `game.{value:GetFullName()}`
+		return parseInstance(value)
 	end
 
 	return typeof(value)
 end
 
---[[
-    Formats a complete log message with decoration and stack trace
-    @param type Message type (PRINT, WARNING, ERROR, etc.)
-    @param messageParts Array of message components
-    @return Fully formatted log message
-]]
+--[=[
+    @param type string -- Message type (e.g., "PRINT", "WARNING")
+    @param messageParts {string} -- Array of message parts to format
+    @return string -- Formatted message with decoration and stack trace
+]=]
 function Glow.FormatMessage(type: string, messageParts: { string }): string
 	local concatenatedMessage = table.concat(messageParts, "\n• ")
 	local stackTrace = debug.traceback(concatenatedMessage)
@@ -133,72 +150,78 @@ function Glow.FormatMessage(type: string, messageParts: { string }): string
 	local prefix = `\n\n{Glow.FormatDecoration(type)}\n\n`
 	local suffix = `{Glow.FormatDebugTrace(scriptLine)}\n\n{DECORATION}\n\n`
 
-	return `{prefix}• {concatenatedMessage}\n{#messageParts < 2 and "" or "\n"}{suffix}`
+	return `{prefix}• {concatenatedMessage}\n{#messageParts < 2 and "" or "\n"}\n{suffix}`
 end
 
---[[
-    Enhanced print function with formatting
-    @param ... Variable number of arguments to print
-]]
+--[=[
+    @param ... any -- Values to print
+]=]
 function Glow.Print(...: any)
 	local messageParts: { string } = {}
-	
-	for _, message in { ... } do
+
+	for _, message in {...} do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
-	
+
 	print(Glow.FormatMessage("PRINT", messageParts))
 end
 
---[[
-    Enhanced warn function with formatting
-    @param ... Variable number of arguments to warn about
-]]
+--[=[
+    @param ... any -- Values to warn about
+]=]
 function Glow.Warn(...: any)
 	local messageParts: { string } = {}
-	
-	for _, message in { ... } do
+
+	for _, message in {...} do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
-	
+
 	TestService:Warn(false, Glow.FormatMessage("WARNING", messageParts))
 end
 
---[[
-    Enhanced error function with formatting and coroutine yield
-    @param ... Variable number of arguments describing the error
-]]
+--[=[
+    @param ... any -- Values to error with
+    @return nil -- Always yields the current thread
+]=]
 function Glow.Error(...: any)
 	local messageParts: { string } = {}
-	
-	for _, message in { ... } do
+
+	for _, message in {...} do
 		table.insert(messageParts, Glow.FormatValue(message))
 	end
-	
+
 	TestService:Error(Glow.FormatMessage("ERROR", messageParts))
 	return coroutine.yield()
 end
 
---[[
-    Assertion function with enhanced error reporting
-    @param condition Boolean condition to test
-    @param message Optional custom error message
-]]
-function Glow.Assert(condition: boolean, message: string?)
+--[=[
+    @param condition boolean -- Condition to assert
+    @param ... any -- Values to display if assertion fails
+    @return nil -- Yields the current thread if assertion fails
+]=]
+function Glow.Assert(condition: boolean, ...)
 	if condition then
 		return
 	end
-	
-	return TestService:Error(Glow.FormatMessage(
-		"ASSERTION", { message or "Assertion Failed!" }
-		)
-	)
+
+	local messageParts: { string } = {}
+
+	for _, message in {...} do
+		table.insert(messageParts, Glow.FormatValue(message))
+	end
+
+	print(Glow.FormatMessage("ASSERTION", messageParts))
+
+	TestService:Error(Glow.FormatMessage(
+		"ASSERTION", messageParts
+		))
+
+	return coroutine.yield()
 end
 
---[[
-    Checkpoint logging function
-    @param checkpointName Identifier for the checkpoint
-]]
+--[=[
+    @param checkpointName any -- Name or value to use as checkpoint identifier
+]=]
 function Glow.Checkpoint(checkpointName: any)
 	TestService:Message(Glow.FormatMessage("CHECKPOINT", {
 		Glow.FormatValue(checkpointName)
